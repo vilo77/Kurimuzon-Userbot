@@ -33,6 +33,9 @@ async def main():
         handlers=[stdout_handler],
     )
 
+    # Ambil SESSION_STRING dari environment variable
+    SESSION_STRING = os.environ.get("SESSION_STRING") or os.environ.get("STRING_SESSION")
+
     app = CustomClient(
         "KurimuzonUserbot",
         api_id=env.int("API_ID", None) or 6,
@@ -52,6 +55,7 @@ async def main():
         proxy=get_proxy(),
         protocol_factory=TCPIntermediate,
         init_connection_params=get_init_connection_params(),
+        session_string=SESSION_STRING,  # <-- TAMBAHAN: Gunakan session string dari environment variable
     )
 
     # For security purposes
