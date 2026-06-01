@@ -27,10 +27,8 @@ async def main():
 
     if not SESSION_STRING:
         raise ValueError(
-            "❌ SESSION_STRING tidak ditemukan!
-"
-            "Set environment variable SESSION_STRING di Railway.
-"
+            "❌ SESSION_STRING tidak ditemukan!"
+            "Set environment variable SESSION_STRING di Railway."
             "Generate session dulu pakai @OfficialPyrogramBot di Telegram."
         )
 
