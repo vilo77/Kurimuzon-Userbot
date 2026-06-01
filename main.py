@@ -36,6 +36,11 @@ async def main():
     # Ambil SESSION_STRING dari environment variable
     SESSION_STRING = os.environ.get("SESSION_STRING") or os.environ.get("STRING_SESSION")
 
+    # CEK: Jika SESSION_STRING ada, HAPUS file session lama jika ada
+    session_file = pathlib.Path(__file__).parent / "KurimuzonUserbot.session"
+    if SESSION_STRING and session_file.exists():
+        session_file.unlink()
+
     app = CustomClient(
         "KurimuzonUserbot",
         api_id=env.int("API_ID", None) or 6,
