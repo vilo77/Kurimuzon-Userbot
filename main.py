@@ -4,19 +4,8 @@ import logging
 import os
 import pathlib
 import platform
-from pyrogram.connection.transport import TCPIntermediate
+from pyrogram import Client, enums, idle
 import git
-from pyrogram import enums, idle, raw
-
-from utils.client import CustomClient
-from utils.misc import env, scheduler, scheduler_jobs
-from utils.scripts import (
-    Formatter,
-    get_proxy,
-    handle_restart,
-    get_init_connection_params,
-)
-from utils.storage import EncryptedStorage
 
 os.chdir(pathlib.Path(__file__).parent)
 
@@ -24,7 +13,7 @@ os.chdir(pathlib.Path(__file__).parent)
 async def main():
     stdout_handler = logging.StreamHandler()
     stdout_handler.setFormatter(
-        Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
 
     logging.basicConfig(
@@ -36,46 +25,44 @@ async def main():
     # Ambil SESSION_STRING dari environment variable
     SESSION_STRING = os.environ.get("SESSION_STRING") or os.environ.get("STRING_SESSION")
 
-    # CEK: Jika SESSION_STRING ada, HAPUS file session lama jika ada
+    if not SESSION_STRING:
+        raise ValueError(
+            "❌ SESSION_STRING tidak ditemukan!
+"
+            "Set environment variable SESSION_STRING di Railway.
+"
+            "Generate session dulu pakai @OfficialPyrogramBot di Telegram."
+        )
+
+    logging.info("✅ SESSION_STRING ditemukan, memulai userbot...")
+
+    # Hapus session file lama kalau ada
     session_file = pathlib.Path(__file__).parent / "KurimuzonUserbot.session"
-    if SESSION_STRING and session_file.exists():
+    if session_file.exists():
         session_file.unlink()
+        logging.info("✅ Deleted old session file")
 
-    app = CustomClient(
+    # Pakai Client langsung dari Pyrogram (bukan CustomClient)
+    app = Client(
         "KurimuzonUserbot",
-        api_id=env.int("API_ID", None) or 6,
-        api_hash=env.str("API_HASH", None) or "eb06d4abfb49dc3eeb1aeb98ae0f581e",
-        device_model=env.str("DEVICE_MODEL", None) or "Samsung SM-F966B",
-        system_version=env.str("SYSTEM_VERSION", None) or "16 (36)",
-        app_version=env.str("APP_VERSION", None) or "12.3.1 (63852)",
-        lang_pack=env.str("LANG_PACK", None) or "android",
-        lang_code=env.str("LANG_CODE", None) or "jabka",
-        client_platform=enums.ClientPlatform.ANDROID,
-        hide_password=True,
-        plugins=dict(root="plugins"),
-        sleep_threshold=10,
-        workdir=pathlib.Path(__file__).parent,
-        parse_mode=enums.ParseMode.HTML,
-        skip_updates=False,
-        proxy=get_proxy(),
-        protocol_factory=TCPIntermediate,
-        init_connection_params=get_init_connection_params(),
         session_string=SESSION_STRING,
+        api_id=int(os.environ.get("API_ID", 6)),
+        api_hash=os.environ.get("API_HASH", "eb06d4abfb49dc3eeb1aeb98ae0f581e"),
+        device_model="Samsung SM-F966B",
+        system_version="16 (36)",
+        app_version="12.3.1 (63852)",
+        lang_pack="android",
+        lang_code="id",
+        plugins=dict(root="plugins"),
     )
 
-    # For security purposes
-    app.storage = EncryptedStorage(
-        client=app, password=bytes(env.str("ENCRYPTION_KEY"), "utf-8"), use_wal=True
-    )
+    await app.start()
 
-    delattr(raw.functions.account, "DeleteAccount")
+    logging.info("✅ Userbot berhasil start!")
 
-    await app.start(use_qr=False)
-
-    async for _ in app.get_dialogs(limit=100):
+    # Get dialogs (untuk confirm session aktif)
+    async for _ in app.get_dialogs(limit=1):
         pass
-
-    await app.storage.save()
 
     try:
         git.Repo()
@@ -89,19 +76,6 @@ async def main():
         repo.heads.master.set_tracking_branch(origin.refs.master)
         repo.heads.master.checkout(True)
 
-    await handle_restart(app)
-
-    for job in scheduler_jobs:
-        scheduler.add_job(
-            func=job.func,
-            trigger=job.trigger,
-            args=[app] + job.args,
-            kwargs=job.kwargs,
-            id=job.id,
-        )
-
-    scheduler.start()
-
     await idle()
 
     await app.stop()
@@ -114,7 +88,6 @@ if __name__ == "__main__":
         else:
             try:
                 import uvloop
-
                 uvloop.install()
             except ImportError:
                 logging.warning("uvloop not installed.")
