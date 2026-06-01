@@ -55,7 +55,7 @@ async def main():
         proxy=get_proxy(),
         protocol_factory=TCPIntermediate,
         init_connection_params=get_init_connection_params(),
-        session_string=SESSION_STRING,  # <-- TAMBAHAN: Gunakan session string dari environment variable
+        session_string=SESSION_STRING,
     )
 
     # For security purposes
